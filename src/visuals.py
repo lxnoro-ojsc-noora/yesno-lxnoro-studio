@@ -49,3 +49,7 @@ def apply_affine_motion(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
     height, width = image.shape[:2]
     return cv2.warpAffine(image, matrix, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
+def interpolate_motion(start: np.ndarray, end: np.ndarray, progress: float) -> np.ndarray:
+    progress = float(np.clip(progress, 0.0, 1.0))
+    return start + (end - start) * progress
+
