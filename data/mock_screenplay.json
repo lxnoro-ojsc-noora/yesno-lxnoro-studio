@@ -1,0 +1,59 @@
+﻿{
+  "title": "YESNO",
+  "scenes": [
+    {
+      "scene_id": 1,
+      "duration_seconds": 10,
+      "title": "The Question",
+      "description": "A young detective discovers a mysterious message in a quiet city at night.",
+      "dialogue": "Why would someone leave this here?",
+      "visual_prompt": "1990s Japanese anime cinematic night street, young detective, mysterious envelope, dramatic moonlight, detailed background",
+      "mood": "mysterious"
+    },
+    {
+      "scene_id": 2,
+      "duration_seconds": 10,
+      "title": "The Signal",
+      "description": "A strange electronic signal appears on an old monitor.",
+      "dialogue": "That signal... it is still active.",
+      "visual_prompt": "1990s Japanese anime laboratory, CRT monitor displaying mysterious signal, blue night lighting, cinematic composition",
+      "mood": "tense"
+    },
+    {
+      "scene_id": 3,
+      "duration_seconds": 10,
+      "title": "The Chase",
+      "description": "The detective runs through narrow streets while following the signal.",
+      "dialogue": "Wait! Stop!",
+      "visual_prompt": "1990s Japanese anime action sequence, detective running through narrow city streets, motion blur, dramatic perspective",
+      "mood": "urgent"
+    },
+    {
+      "scene_id": 4,
+      "duration_seconds": 10,
+      "title": "The Door",
+      "description": "The signal leads to an abandoned building with a locked underground door.",
+      "dialogue": "So this is where it ends.",
+      "visual_prompt": "1990s Japanese anime abandoned building, underground metal door, flashlight beam, deep shadows, cinematic suspense",
+      "mood": "suspenseful"
+    },
+    {
+      "scene_id": 5,
+      "duration_seconds": 10,
+      "title": "The Truth",
+      "description": "The door opens and reveals a hidden room filled with evidence.",
+      "dialogue": "Now I understand everything.",
+      "visual_prompt": "1990s Japanese anime hidden investigation room, evidence boards, photographs, documents, dramatic reveal lighting",
+      "mood": "revelation"
+    },
+    {
+      "scene_id": 6,
+      "duration_seconds": 10,
+      "title": "YESNO",
+      "description": "The detective looks toward the sunrise, holding the final piece of evidence.",
+      "dialogue": "There are only two answers: yes or no.",
+      "visual_prompt": "1990s Japanese anime cinematic sunrise, detective standing on rooftop holding evidence, city skyline, emotional final shot",
+      "mood": "determined"
+    }
+  ]
+}
