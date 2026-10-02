@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env.*
+!.env.example
+*.mp4
+*.wav
+*.mp3
+*.log
+.DS_Store

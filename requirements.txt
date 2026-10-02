@@ -1,0 +1,13 @@
+streamlit
+clean-text
+pydantic
+python-dotenv
+numpy
+opencv-python
+color-matcher
+scikit-image
+scipy
+pydub
+moviepy
+loguru
+Pillow
