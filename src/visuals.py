@@ -36,3 +36,8 @@ def save_image(image: np.ndarray, path: str | Path) -> None:
 
     if not cv2.imwrite(str(output_path), image):
         raise IOError(f"Could not write image: {output_path}")
+
+def canny_edges(image: np.ndarray, low_threshold: int = 100, high_threshold: int = 200) -> np.ndarray:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return cv2.Canny(gray, low_threshold, high_threshold)
+
