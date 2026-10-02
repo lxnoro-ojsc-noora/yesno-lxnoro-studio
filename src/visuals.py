@@ -41,3 +41,11 @@ def canny_edges(image: np.ndarray, low_threshold: int = 100, high_threshold: int
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.Canny(gray, low_threshold, high_threshold)
 
+def affine_matrix(width: int, height: int, zoom: float = 1.0, pan_x: float = 0.0, pan_y: float = 0.0, rotation: float = 0.0) -> np.ndarray:
+    center = (width / 2.0, height / 2.0)
+    return cv2.getRotationMatrix2D(center, rotation, zoom).astype(np.float32) + np.array([[0.0, 0.0, pan_x], [0.0, 0.0, pan_y]], dtype=np.float32)
+
+def apply_affine_motion(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
+    height, width = image.shape[:2]
+    return cv2.warpAffine(image, matrix, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
