@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+﻿from collections.abc import Iterable
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -25,9 +26,7 @@ def color_match(
         method=method,
     )
 
-    result = np.clip(result, 0, 255).astype(np.uint8)
-
-    return result
+    return np.clip(result, 0, 255).astype(np.uint8)
 
 
 def save_image(image: np.ndarray, path: str | Path) -> None:
@@ -37,60 +36,156 @@ def save_image(image: np.ndarray, path: str | Path) -> None:
     if not cv2.imwrite(str(output_path), image):
         raise IOError(f"Could not write image: {output_path}")
 
-def canny_edges(image: np.ndarray, low_threshold: int = 100, high_threshold: int = 200) -> np.ndarray:
+
+def canny_edges(
+    image: np.ndarray,
+    low_threshold: int = 100,
+    high_threshold: int = 200,
+) -> np.ndarray:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.Canny(gray, low_threshold, high_threshold)
 
-def affine_matrix(width: int, height: int, zoom: float = 1.0, pan_x: float = 0.0, pan_y: float = 0.0, rotation: float = 0.0) -> np.ndarray:
+
+def affine_matrix(
+    width: int,
+    height: int,
+    zoom: float = 1.0,
+    pan_x: float = 0.0,
+    pan_y: float = 0.0,
+    rotation: float = 0.0,
+) -> np.ndarray:
     center = (width / 2.0, height / 2.0)
-    return cv2.getRotationMatrix2D(center, rotation, zoom).astype(np.float32) + np.array([[0.0, 0.0, pan_x], [0.0, 0.0, pan_y]], dtype=np.float32)
 
-def apply_affine_motion(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
+    matrix = cv2.getRotationMatrix2D(
+        center,
+        rotation,
+        zoom,
+    ).astype(np.float32)
+
+    translation = np.array(
+        [
+            [0.0, 0.0, pan_x],
+            [0.0, 0.0, pan_y],
+        ],
+        dtype=np.float32,
+    )
+
+    return matrix + translation
+
+
+def apply_affine_motion(
+    image: np.ndarray,
+    matrix: np.ndarray,
+) -> np.ndarray:
     height, width = image.shape[:2]
-    return cv2.warpAffine(image, matrix, (width, height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
-def interpolate_motion(start: np.ndarray, end: np.ndarray, progress: float) -> np.ndarray:
+    return cv2.warpAffine(
+        image,
+        matrix,
+        (width, height),
+        flags=cv2.INTER_LINEAR,
+        borderMode=cv2.BORDER_REFLECT,
+    )
+
+
+def interpolate_motion(
+    start: np.ndarray,
+    end: np.ndarray,
+    progress: float,
+) -> np.ndarray:
     progress = float(np.clip(progress, 0.0, 1.0))
     return start + (end - start) * progress
 
-def generate_motion_frame(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, progress: float) -> np.ndarray:
-    matrix = interpolate_motion(start_matrix, end_matrix, progress)
+
+def generate_motion_frame(
+    image: np.ndarray,
+    start_matrix: np.ndarray,
+    end_matrix: np.ndarray,
+    progress: float,
+) -> np.ndarray:
+    matrix = interpolate_motion(
+        start_matrix,
+        end_matrix,
+        progress,
+    )
+
     return apply_affine_motion(image, matrix)
 
-def generate_motion_sequence(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, frame_count: int) -> list[np.ndarray]:
-    if frame_count < 2:
-        raise ValueError('frame_count must be at least 2')
-    return [generate_motion_frame(image, start_matrix, end_matrix, i / (frame_count - 1)) for i in range(frame_count)]
 
-def write_frame_sequence(frames: list[np.ndarray], output_path: str | Path, fps: int = 30) -> None:
+def generate_motion_sequence(
+    image: np.ndarray,
+    start_matrix: np.ndarray,
+    end_matrix: np.ndarray,
+    frame_count: int,
+) -> list[np.ndarray]:
+    if frame_count < 2:
+        raise ValueError("frame_count must be at least 2")
+
+    return [
+        generate_motion_frame(
+            image,
+            start_matrix,
+            end_matrix,
+            i / (frame_count - 1),
+        )
+        for i in range(frame_count)
+    ]
+
+
+def write_frame_sequence(
+    frames: list[np.ndarray],
+    output_path: str | Path,
+    fps: int = 30,
+) -> None:
     if not frames:
-        raise ValueError('frames cannot be empty')
+        raise ValueError("frames cannot be empty")
+
     height, width = frames[0].shape[:2]
-    writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+    writer = cv2.VideoWriter(
+        str(output_path),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (width, height),
+    )
+
     if not writer.isOpened():
-        raise IOError(f'Could not open video writer: {output_path}')
+        raise IOError(f"Could not open video writer: {output_path}")
+
     try:
         for frame in frames:
             if frame.shape[:2] != (height, width):
-                raise ValueError('All frames must have identical dimensions')
+                raise ValueError("All frames must have identical dimensions")
+
             writer.write(frame)
     finally:
         writer.release()
 
-def iter_motion_frames(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, frame_count: int):
+
+def iter_motion_frames(
+    image: np.ndarray,
+    start_matrix: np.ndarray,
+    end_matrix: np.ndarray,
+    frame_count: int,
+):
     if frame_count < 2:
-        raise ValueError('frame_count must be at least 2')
+        raise ValueError("frame_count must be at least 2")
+
     for i in range(frame_count):
         progress = i / (frame_count - 1)
-        yield generate_motion_frame(image, start_matrix, end_matrix, progress)
+        yield generate_motion_frame(
+            image,
+            start_matrix,
+            end_matrix,
+            progress,
+        )
 
-from pathlib import Path
 
-import cv2
-import numpy as np
-
-
-def write_frame_stream(frames, output_path: str | Path, fps: int = 30) -> None:
+def write_frame_stream(
+    frames: Iterable[np.ndarray],
+    output_path: str | Path,
+    fps: int = 30,
+) -> None:
     iterator = iter(frames)
 
     try:
@@ -116,6 +211,29 @@ def write_frame_stream(frames, output_path: str | Path, fps: int = 30) -> None:
         for frame in iterator:
             if frame.shape[:2] != (height, width):
                 raise ValueError("All frames must have identical dimensions")
+
             writer.write(frame)
     finally:
         writer.release()
+
+
+def generate_motion_video(
+    image: np.ndarray,
+    start_matrix: np.ndarray,
+    end_matrix: np.ndarray,
+    frame_count: int,
+    output_path: str | Path,
+    fps: int = 30,
+) -> None:
+    frames = iter_motion_frames(
+        image,
+        start_matrix,
+        end_matrix,
+        frame_count,
+    )
+
+    write_frame_stream(
+        frames,
+        output_path,
+        fps=fps,
+    )
