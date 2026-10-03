@@ -84,3 +84,38 @@ def iter_motion_frames(image: np.ndarray, start_matrix: np.ndarray, end_matrix: 
         progress = i / (frame_count - 1)
         yield generate_motion_frame(image, start_matrix, end_matrix, progress)
 
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+
+def write_frame_stream(frames, output_path: str | Path, fps: int = 30) -> None:
+    iterator = iter(frames)
+
+    try:
+        first_frame = next(iterator)
+    except StopIteration:
+        raise ValueError("frames cannot be empty")
+
+    height, width = first_frame.shape[:2]
+
+    writer = cv2.VideoWriter(
+        str(output_path),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (width, height),
+    )
+
+    if not writer.isOpened():
+        raise IOError(f"Could not open video writer: {output_path}")
+
+    try:
+        writer.write(first_frame)
+
+        for frame in iterator:
+            if frame.shape[:2] != (height, width):
+                raise ValueError("All frames must have identical dimensions")
+            writer.write(frame)
+    finally:
+        writer.release()
