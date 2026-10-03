@@ -77,3 +77,10 @@ def write_frame_sequence(frames: list[np.ndarray], output_path: str | Path, fps:
     finally:
         writer.release()
 
+def iter_motion_frames(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, frame_count: int):
+    if frame_count < 2:
+        raise ValueError('frame_count must be at least 2')
+    for i in range(frame_count):
+        progress = i / (frame_count - 1)
+        yield generate_motion_frame(image, start_matrix, end_matrix, progress)
+
