@@ -53,3 +53,7 @@ def interpolate_motion(start: np.ndarray, end: np.ndarray, progress: float) -> n
     progress = float(np.clip(progress, 0.0, 1.0))
     return start + (end - start) * progress
 
+def generate_motion_frame(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, progress: float) -> np.ndarray:
+    matrix = interpolate_motion(start_matrix, end_matrix, progress)
+    return apply_affine_motion(image, matrix)
+
