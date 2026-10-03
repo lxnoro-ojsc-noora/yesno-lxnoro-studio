@@ -57,3 +57,8 @@ def generate_motion_frame(image: np.ndarray, start_matrix: np.ndarray, end_matri
     matrix = interpolate_motion(start_matrix, end_matrix, progress)
     return apply_affine_motion(image, matrix)
 
+def generate_motion_sequence(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, frame_count: int) -> list[np.ndarray]:
+    if frame_count < 2:
+        raise ValueError('frame_count must be at least 2')
+    return [generate_motion_frame(image, start_matrix, end_matrix, i / (frame_count - 1)) for i in range(frame_count)]
+
