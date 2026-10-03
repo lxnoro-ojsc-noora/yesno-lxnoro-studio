@@ -62,3 +62,18 @@ def generate_motion_sequence(image: np.ndarray, start_matrix: np.ndarray, end_ma
         raise ValueError('frame_count must be at least 2')
     return [generate_motion_frame(image, start_matrix, end_matrix, i / (frame_count - 1)) for i in range(frame_count)]
 
+def write_frame_sequence(frames: list[np.ndarray], output_path: str | Path, fps: int = 30) -> None:
+    if not frames:
+        raise ValueError('frames cannot be empty')
+    height, width = frames[0].shape[:2]
+    writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+    if not writer.isOpened():
+        raise IOError(f'Could not open video writer: {output_path}')
+    try:
+        for frame in frames:
+            if frame.shape[:2] != (height, width):
+                raise ValueError('All frames must have identical dimensions')
+            writer.write(frame)
+    finally:
+        writer.release()
+
