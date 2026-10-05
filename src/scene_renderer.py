@@ -1,7 +1,7 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 from src.scene_motion import build_motion_matrices
-from src.visuals import generate_master_to_30fps_video, load_image
+from src.visuals import generate_motion_video, load_image
 
 
 def render_scene(
@@ -20,12 +20,14 @@ def render_scene(
         height,
     )
 
-    generate_master_to_30fps_video(
+    master_fps = 12
+    frame_count = master_fps * 10
+
+    generate_motion_video(
         image,
         start_matrix,
         end_matrix,
+        frame_count,
         output_path,
-        master_fps=12,
-        output_fps=fps,
-        duration_seconds=10,
+        fps=master_fps,
     )

@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 from moviepy import VideoFileClip, concatenate_videoclips
 
@@ -9,7 +9,6 @@ def compose_trailer(
 ) -> None:
     scenes_path = Path(scenes_dir)
     output_file = Path(output_path)
-
     clips = []
 
     try:
@@ -19,7 +18,9 @@ def compose_trailer(
             if not scene_path.is_file():
                 raise FileNotFoundError(f"Missing scene video: {scene_path}")
 
-            clips.append(VideoFileClip(str(scene_path)))
+            clips.append(
+                VideoFileClip(str(scene_path)).with_fps(30)
+            )
 
         final_clip = concatenate_videoclips(
             clips,
@@ -32,6 +33,7 @@ def compose_trailer(
             str(output_file),
             codec="libx264",
             audio=False,
+            fps=30,
         )
 
         final_clip.close()

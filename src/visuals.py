@@ -162,38 +162,53 @@ def write_frame_sequence(
         writer.release()
 
 
-def iter_motion_frames(
+def build_master_keyframes(
     image: np.ndarray,
     start_matrix: np.ndarray,
     end_matrix: np.ndarray,
-    frame_count: int,
-):
-    if frame_count < 2:
-        raise ValueError("frame_count must be at least 2")
+    master_fps: int = 12,
+    duration_seconds: int = 10,
+) -> np.ndarray:
+    if master_fps < 1:
+        raise ValueError("master_fps must be at least 1")
+    if duration_seconds < 1:
+        raise ValueError("duration_seconds must be at least 1")
 
-    for i in range(frame_count):
-        progress = i / (frame_count - 1)
-        yield generate_motion_frame(
+    frame_count = master_fps * duration_seconds
+    progress = np.linspace(0.0, 1.0, frame_count, dtype=np.float32)
+
+    matrices = (
+        start_matrix[None, :, :]
+        + (end_matrix - start_matrix)[None, :, :] * progress[:, None, None]
+    )
+
+    height, width = image.shape[:2]
+    frames = np.empty(
+        (frame_count, height, width, image.shape[2]),
+        dtype=image.dtype,
+    )
+
+    for index, matrix in enumerate(matrices):
+        frames[index] = cv2.warpAffine(
             image,
-            start_matrix,
-            end_matrix,
-            progress,
+            matrix.astype(np.float32),
+            (width, height),
+            flags=cv2.INTER_LINEAR,
+            borderMode=cv2.BORDER_REFLECT,
         )
+
+    return frames
 
 
 def write_frame_stream(
-    frames: Iterable[np.ndarray],
+    frames: np.ndarray,
     output_path: str | Path,
     fps: int = 30,
 ) -> None:
-    iterator = iter(frames)
+    if frames.ndim != 4 or frames.shape[0] == 0:
+        raise ValueError("frames must be a non-empty 4D array")
 
-    try:
-        first_frame = next(iterator)
-    except StopIteration:
-        raise ValueError("frames cannot be empty")
-
-    height, width = first_frame.shape[:2]
+    height, width = frames.shape[1:3]
 
     writer = cv2.VideoWriter(
         str(output_path),
@@ -206,39 +221,13 @@ def write_frame_stream(
         raise IOError(f"Could not open video writer: {output_path}")
 
     try:
-        writer.write(first_frame)
-
-        for frame in iterator:
+        for frame in frames:
             if frame.shape[:2] != (height, width):
                 raise ValueError("All frames must have identical dimensions")
-
             writer.write(frame)
     finally:
         writer.release()
 
-
-def generate_master_to_30fps_video(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, output_path: str | Path, master_fps: int = 12, output_fps: int = 30, duration_seconds: int = 10) -> None:
-    master_frames = iter_master_keyframes(image, start_matrix, end_matrix, master_fps, duration_seconds)
-    master_iter = iter(master_frames)
-    current = next(master_iter)
-    next_frame = next(master_iter, None)
-    total_frames = output_fps * duration_seconds
-    writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*'mp4v'), output_fps, (current.shape[1], current.shape[0]))
-    if not writer.isOpened():
-        raise IOError(f'Could not open video writer: {output_path}')
-    try:
-        master_count = master_fps * duration_seconds
-        for i in range(total_frames):
-            index = min((i * master_count) // total_frames, master_count - 1)
-            while getattr(generate_master_to_30fps_video, '_index', -1) < index:
-                generate_master_to_30fps_video._index = getattr(generate_master_to_30fps_video, '_index', -1) + 1
-                if next_frame is not None:
-                    current = next_frame
-                    next_frame = next(master_iter, None)
-            writer.write(current)
-    finally:
-        writer.release()
-        generate_master_to_30fps_video._index = -1
 
 def generate_motion_video(
     image: np.ndarray,
@@ -248,21 +237,49 @@ def generate_motion_video(
     output_path: str | Path,
     fps: int = 30,
 ) -> None:
-    frames = iter_motion_frames(
+    if frame_count < 2:
+        raise ValueError("frame_count must be at least 2")
+
+    master_fps = 12
+    duration_seconds = frame_count // master_fps
+
+    if frame_count != master_fps * duration_seconds:
+        raise ValueError(
+            "frame_count must represent a whole number of seconds at 12fps"
+        )
+
+    frames = build_master_keyframes(
         image,
         start_matrix,
         end_matrix,
-        frame_count,
+        master_fps=master_fps,
+        duration_seconds=duration_seconds,
     )
+
+    if fps != master_fps:
+        raise ValueError(
+            "generate_motion_video now writes the master keyframe stream at 12fps"
+        )
 
     write_frame_stream(
         frames,
         output_path,
-        fps=fps,
+        fps=master_fps,
     )
 
 
-def iter_master_keyframes(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, master_fps: int = 12, duration_seconds: int = 10):
-    frame_count = master_fps * duration_seconds
-    yield from iter_motion_frames(image, start_matrix, end_matrix, frame_count)
-
+def iter_master_keyframes(
+    image: np.ndarray,
+    start_matrix: np.ndarray,
+    end_matrix: np.ndarray,
+    master_fps: int = 12,
+    duration_seconds: int = 10,
+):
+    frames = build_master_keyframes(
+        image,
+        start_matrix,
+        end_matrix,
+        master_fps=master_fps,
+        duration_seconds=duration_seconds,
+    )
+    yield from frames
