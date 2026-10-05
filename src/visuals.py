@@ -217,6 +217,29 @@ def write_frame_stream(
         writer.release()
 
 
+def generate_master_to_30fps_video(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, output_path: str | Path, master_fps: int = 12, output_fps: int = 30, duration_seconds: int = 10) -> None:
+    master_frames = iter_master_keyframes(image, start_matrix, end_matrix, master_fps, duration_seconds)
+    master_iter = iter(master_frames)
+    current = next(master_iter)
+    next_frame = next(master_iter, None)
+    total_frames = output_fps * duration_seconds
+    writer = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc(*'mp4v'), output_fps, (current.shape[1], current.shape[0]))
+    if not writer.isOpened():
+        raise IOError(f'Could not open video writer: {output_path}')
+    try:
+        master_count = master_fps * duration_seconds
+        for i in range(total_frames):
+            index = min((i * master_count) // total_frames, master_count - 1)
+            while getattr(generate_master_to_30fps_video, '_index', -1) < index:
+                generate_master_to_30fps_video._index = getattr(generate_master_to_30fps_video, '_index', -1) + 1
+                if next_frame is not None:
+                    current = next_frame
+                    next_frame = next(master_iter, None)
+            writer.write(current)
+    finally:
+        writer.release()
+        generate_master_to_30fps_video._index = -1
+
 def generate_motion_video(
     image: np.ndarray,
     start_matrix: np.ndarray,
@@ -237,3 +260,9 @@ def generate_motion_video(
         output_path,
         fps=fps,
     )
+
+
+def iter_master_keyframes(image: np.ndarray, start_matrix: np.ndarray, end_matrix: np.ndarray, master_fps: int = 12, duration_seconds: int = 10):
+    frame_count = master_fps * duration_seconds
+    yield from iter_motion_frames(image, start_matrix, end_matrix, frame_count)
+
